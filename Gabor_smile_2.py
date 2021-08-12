@@ -17,7 +17,7 @@ from gabor_gen_smile import *
 from gabor_config_smile import *
 
 """Chuiwen's experimental version for tree shrews"""
-"""contrast discrimination task"""
+"""CDT: contrast discrimination task"""
 
 # set up nidaq
 if not DEV_MODE:
