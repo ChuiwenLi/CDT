@@ -48,7 +48,7 @@ if not DEV_MODE:
     write_center.start()
 
 @Subroutine
-def BlankScrLickPunish(self, interval, lick_pause=0.8):
+def BlankScrLickPunish(self, interval, penalty=2):
     self.not_done = True
     self.interval = interval
     self.time_left = interval
@@ -69,52 +69,18 @@ def BlankScrLickPunish(self, interval, lick_pause=0.8):
             # keep track of passed time
             self.passed_time += delaylick.rt
             # update the total delay interval
-            self.inverval = max(self.interval, self.passed_time+2)
+            self.interval = Func(max,self.passed_time+penalty ,self.interval).result
             # calculate how much delay is left
             self.time_left = self.interval - self.passed_time
+            Debug(time_left=self.time_left)
             with If(self.time_left <= 0.0):
                 self.total_penalty = self.interval - interval
+                Debug(total_penalty=self.total_penalty)
                 self.not_done = False
         with Else():
             self.total_penalty = self.interval - interval
+            Debug(total_penalty=self.total_penalty)
             self.not_done = False
-
-def BlankScrLickPunish_old(self, interval, max_penalty, penalty, lick_pause=0.8):
-    """4s timeout"""
-    self.not_done = True
-    self.interval = interval
-    self.total_penalty = 0.0
-    with Loop(conditional=self.not_done):
-        with Parallel():
-            if DEV_MODE:
-                delaylick = KeyPress(keys=["SPACEBAR"], correct_resp=["SPACEBAR"],
-                                     duration=self.interval)
-            else:
-                delaylick = NIChangeDetector(task=read_licker,
-                                             tracked_indices=[0],
-                                             correct_resp=[0],
-                                             threshold=thresh,
-                                             duration=self.interval) 
-        with If(delaylick.correct):
-            # calculate how much is left
-            self.interval = self.interval - delaylick.rt
-
-            # add penalty if we haven't maxed out
-            with If(self.total_penalty + penalty < max_penalty):
-                self.cur_penalty = penalty
-            with Else():
-                self.cur_penalty = max_penalty - self.total_penalty
-            self.total_penalty = self.total_penalty + self.cur_penalty
-            self.interval = self.interval + self.cur_penalty - lick_pause
-            # Debug(interval = self.interval, penalty = self.total_penalty)
-            with If(self.interval <= 0.0):
-                self.not_done = False
-            with Else():
-                Wait(lick_pause)
-        with Else():
-            self.not_done = False
-
-
 
 @Subroutine
 def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
@@ -188,8 +154,6 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
         # Debug(active=nic.changed_channels, values=nic.values, time=nic.change_time,
         #     rt=nic.rt, correct=nic.correct)
 
-    # the trial is done, either from timeout or responsec
-    
     with If(nic.correct & (nic.rt>MIN_RT)):
         # They got it right!
         if DEV_MODE:
@@ -200,7 +164,7 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
         else:
             # determine the correct push vals
             # self.pulse_dur=random.uniform(.05,1)
-            Debug(reward_dur=self.pulse_dur)
+            Debug(rt=nic.rt, reward_dur=self.pulse_dur)
             self.pv = loc_to_PV[CR_to_loc[CR[0]]]
             reward_pulse = NIPulse(task=write_reward,
                                    vals=self.pv, dur=self.pulse_dur)
@@ -212,7 +176,7 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
             Wait(until=reward_pulse.pulse_end_time)
 
         # add a wait for the correct amount
-        BlankScrLickPunish(interval=self.right_wait, max_penalty=max_ITI-self.right_wait, penalty=0.6)
+        BlankScrLickPunish(interval=self.right_wait)
         #Wait(right_wait)
     with Else():
         # they got it wrong
@@ -224,7 +188,9 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
         self.reward_time = event_time(0,0)
   
         # add in extra wait
-        BlankScrLickPunish(interval=wrong_wait, max_penalty=max_timeout-wrong_wait, penalty=0.6)
+        self.wrongwait=Func(expon(scale=sc).pdf,x=nic.rt).result +up
+        Debug(wrongwait=self.wrongwait)
+        BlankScrLickPunish(interval=self.wrongwait)
 
     # log the trial info
     if DEV_MODE:

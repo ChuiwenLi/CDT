@@ -1,5 +1,5 @@
-# DEV_MODE = True
-DEV_MODE = False
+DEV_MODE = True
+# DEV_MODE = False
 # fullscr = True
 import numpy as np
 
@@ -138,3 +138,7 @@ myclip_b=0.4
 my_mean=0.1
 my_std=0.06
 pul_a, pul_b= (myclip_a-my_mean)/my_std, (myclip_b-my_mean)/my_std
+
+"""for exponential timeout"""
+sc=0.1 # scale
+up=3.7 # timeout baseline
