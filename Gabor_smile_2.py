@@ -90,6 +90,7 @@ def BlankScrLickPunish(self, interval, penalty=2, **kwargs):
             self.not_done = False
             Log(name="penalty_data",
                 tol_penalty_time=self.total_penalty,
+                initdelay=interval,
                 log_dict=kwargs,)
     
 
@@ -174,7 +175,6 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
             self.reward_time = reward_pulse.appear_time
         else:
             # determine the correct push vals
-            # self.pulse_dur=random.uniform(.05,1)
             Debug(rt=nic.rt, reward_dur=self.pulse_dur)
             self.pv = loc_to_PV[CR_to_loc[CR[0]]]
             reward_pulse = NIPulse(task=write_reward,
@@ -203,7 +203,7 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
         self.reward_time = event_time(0,0)
   
         # add in extra wait
-        self.wrongwait=Func(expon(scale=sc).pdf,x=nic.rt).result +up
+        self.wrongwait=Func(expon(scale=sc).pdf,x=nic.rt).result + up + self.right_wait
         Debug(wrongwait=self.wrongwait)
         kw4delay = {'correct':nic.correct,
                     'rt_resp':nic.rt,
