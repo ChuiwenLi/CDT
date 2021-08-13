@@ -48,7 +48,7 @@ if not DEV_MODE:
     write_center.start()
 
 @Subroutine
-def BlankScrLickPunish(self, interval, penalty=2):
+def BlankScrLickPunish(self, interval, penalty=2, **kwargs):
     self.not_done = True
     self.interval = interval
     self.time_left = interval
@@ -74,13 +74,24 @@ def BlankScrLickPunish(self, interval, penalty=2):
             self.time_left = self.interval - self.passed_time
             Debug(time_left=self.time_left)
             with If(self.time_left <= 0.0):
-                self.total_penalty = self.interval - interval
-                Debug(total_penalty=self.total_penalty)
                 self.not_done = False
+            if DEV_MODE:
+                self.del_lick_time = delaylick.press_time
+            else:
+                self.del_lick_time = delaylick.change_time
+            Log(name="penalty_data",
+                rel_t=delaylick.rt,
+                base_t=delaylick.base_time,
+                abs_t=self.del_lick_time,
+                log_dict=kwargs,)
         with Else():
             self.total_penalty = self.interval - interval
             Debug(total_penalty=self.total_penalty)
             self.not_done = False
+            Log(name="penalty_data",
+                tol_penalty_time=self.total_penalty,
+                log_dict=kwargs,)
+    
 
 @Subroutine
 def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
@@ -176,7 +187,11 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
             Wait(until=reward_pulse.pulse_end_time)
 
         # add a wait for the correct amount
-        BlankScrLickPunish(interval=self.right_wait)
+        kw4delay = {'correct':nic.correct,
+                    'rt_resp':nic.rt,
+                    'trial_start':g.appear_time
+                    }
+        BlankScrLickPunish(interval=self.right_wait,**kw4delay)
         #Wait(right_wait)
     with Else():
         # they got it wrong
@@ -190,7 +205,11 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
         # add in extra wait
         self.wrongwait=Func(expon(scale=sc).pdf,x=nic.rt).result +up
         Debug(wrongwait=self.wrongwait)
-        BlankScrLickPunish(interval=self.wrongwait)
+        kw4delay = {'correct':nic.correct,
+                    'rt_resp':nic.rt,
+                    'trial_start':g.appear_time
+                    }
+        BlankScrLickPunish(interval=self.wrongwait,**kw4delay)
 
     # log the trial info
     if DEV_MODE:
@@ -219,7 +238,7 @@ def Trial(self, CTRST_L, CTRST_R, CR):#,right_wait,pulse_dur):
     
 
 # set up the experiment
-exp = Experiment(background_color=[0.5,0.5,0.5,1], name="GABOR", resolution=(1280,1024),
+exp = Experiment(background_color=[0.5,0.5,0.5,1], name="CDT_exp_timeout", resolution=(1280,1024),
                 #  fullscreen=False, resolution = (800,600), #"gray",
                  show_splash=False, debug=True)
 Wait(.25)
